@@ -4,11 +4,16 @@
 
 one_off_checksum_test() ->
   test_helper:riak_test(fun(Riak) ->
+io:format(user, "Line ~p ~p ~p\n", [?MODULE, ?LINE, time()]),
       Sha = crypto:sha(<<"chilled monkey brains">>),
+io:format(user, "Line ~p ~p ~p\n", [?MODULE, ?LINE, time()]),
       {ok, File} = luwak_file:create(Riak, <<"file1">>, [{tree_order,2},{block_size,2}], dict:new()),
+io:format(user, "Line ~p ~p ~p\n", [?MODULE, ?LINE, time()]),
       {ok, _, File1} = luwak_io:put_range(Riak, File, 0, <<"chilled monkey brains">>),
+io:format(user, "Line ~p ~p ~p\n", [?MODULE, ?LINE, time()]),
       timer:sleep(100),
       Checksum = luwak_checksum:sha1(Riak, File1),
+io:format(user, "Line ~p ~p ~p\n", [?MODULE, ?LINE, time()]),
       ?assertEqual(Sha, Checksum)
     end).
 

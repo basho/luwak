@@ -18,25 +18,35 @@ start_riak() ->
         {ok,_} -> ok;
         {error,{already_started,_}} -> ok
     end,
-  % Dir = "/tmp/ring-" ++ os:getpid(),
-  % filelib:ensure_dir(Dir ++ "/"),
-  % application:set_env(riak_core, ring_state_dir, Dir),
-  application:set_env(riak_kv, storage_backend, riak_kv_cache_backend),
-  error_logger:delete_report_handler(error_logger_tty_h),
-  application:start(sasl),
-  error_logger:delete_report_handler(sasl_report_tty_h),
-  load_and_start_apps([crypto,
-                       os_mon,
-                       runtime_tools,
-                       mochiweb,
-                       webmachine,
-                       riak_sysmon,
-                       riak_core,
-                       luke,
-                       erlang_js,
-                       skerl,
-                       bitcask,
-                       riak_kv]).
+%    error_logger:delete_report_handler(error_logger_tty_h),%%SLF:
+    application:start(sasl),
+%    error_logger:delete_report_handler(sasl_report_tty_h),%%SLF:
+    Apps = [crypto, os_mon, runtime_tools, mochiweb, webmachine, riak_sysmon,
+            riak_core, luke, erlang_js, skerl, bitcask, riak_kv],
+    [begin
+         application:stop(A),
+         [application:unset_env(A, Key) ||
+             {Key, _} <- application:get_all_env(A)],
+         FName = atom_to_list(A) ++ ".app",
+         FullName = code:where_is_file(FName),
+         {ok, [{_, _, Ps}]} = file:consult(FullName),
+         Es = proplists:get_value(env, Ps, []),
+         [application:set_env(A, K, V) || {K, V} <- Es]
+     end || A <- Apps],
+    %% Started independently by other eunit tests
+    [catch exit(whereis(Name), kill) ||
+        Name <- [riak_core_ring_manager, riak_kv_vnode_master]],
+    timer:sleep(100),
+
+    % Dir = "/tmp/ring-" ++ os:getpid(),
+    % filelib:ensure_dir(Dir ++ "/"),
+    % application:set_env(riak_core, ring_state_dir, Dir),
+    application:set_env(riak_kv, storage_backend, riak_kv_ets_backend),
+    
+io:format(user, "SLF temp: ~w\n", [lists:sort(registered())]),
+[io:format(user, "SLF temp: ~p ~p\n", [A, application:get_all_env(A)]) || A <- Apps],
+    load_and_start_apps(Apps),
+    timer:sleep(150).
     
 stop_riak() ->
   application:stop(riak_kv).

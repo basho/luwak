@@ -10,6 +10,11 @@
 
 -define(fmt(S, As), lists:flatten(io_lib:format(S, As))).
 
+-define(get_default_block_size,
+        app_helper:get_env(luwak,
+                           default_block_size,
+                           ?BLOCK_DEFAULT)).
+
 -record(split, {head=[], midhead=[], middle=[], midtail=[], tail=[]}).
 
 -ifndef(EUNIT_HRL).
